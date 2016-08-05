@@ -1,0 +1,25 @@
+{
+    "countries": [
+        {
+            "countryCode": "AD",
+            "countryName": {
+                "en": "Andorra",
+                "pt": "Andorra"
+            }
+        },
+        {
+            "countryCode": "AE",
+            "countryName": {
+                "en": "United Arab Emirates",
+                "pt": "Emirados Árabes Unidos"
+            }
+        },
+        {
+            "countryCode": "AF",
+            "countryName": {
+                "en": "Afghanistan",
+                "pt": "Afeganistão"
+            }
+        }
+    ]
+}

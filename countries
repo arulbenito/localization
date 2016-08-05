@@ -1,0 +1,65 @@
+#!/usr/bin/env groovy -Djava.locale.providers=CLDR
+
+ import java.io.File
+ import java.nio.file.Paths
+ import groovy.json.JsonSlurper
+ import groovy.json.JsonBuilder
+ import static groovy.json.JsonParserType.LAX as RELAX
+ import groovy.json.StringEscapeUtils
+ import groovy.json.JsonOutput
+
+ def locale = this.args[0].toLowerCase();
+ def sourceFileName = this.args[1].toLowerCase();
+ def sourceFile = new File(sourceFileName)
+ def countriesJson = new JsonSlurper().setType(RELAX).parse(sourceFile,'UTF-8')
+
+//Test
+assert countriesJson instanceof java.util.Map
+assert countriesJson.countries instanceof java.util.List
+
+// Create MAP of Country Code and Name for the required locale.
+supportedLangs = Locale.getISOLanguages();
+if (!(this.args.length > 0 && supportedLangs.contains(locale))) {
+    printf("Usage: countries <lang_code>\n")
+    printf("\t<lang_code> must be an ISO lang code. Examples: en, pt, fr, es, ja.\n")
+    System.exit(0)
+}
+currentLocale = new Locale.Builder().setLanguageTag(this.args[0].toLowerCase()).build()
+locales = Locale.getISOCountries()
+def localizedCountryNames = [:] 
+for(c in locales) {
+    targetLocale = new Locale.Builder().setRegion(c).build()
+    localizedCountryNames.put(targetLocale.getCountry(),targetLocale.getDisplayCountry(currentLocale)) // java notation
+}
+
+//add the localized country name to the countryName Object
+def localizedCountryName
+countriesJson.countries.each {
+    it.each{
+        if (it.key=="countryCode"){
+            if(localizedCountryNames.containsKey(it.value)) {
+                localizedCountryName = (localizedCountryNames[it.value])
+                } else {
+                    localizedCountryName = ""
+                }   
+            } 
+            if (it.key=="countryName"){
+                def countryNamesJson = new JsonBuilder(it.value)
+                def countryNamesMap = new JsonSlurper().parseText(countryNamesJson.toString());
+                if (localizedCountryName.length() == 0){
+                    println "No Localized name for Country " + countryNamesMap['en'] + ", So defaulted to English"
+                    countryNamesMap[locale] = countryNamesMap['en']
+                } else {
+                    countryNamesMap[locale] = localizedCountryName
+                }
+                it.value = countryNamesMap         
+            }        
+        }
+    }
+
+ File.metaClass.constructor << { File param ->
+     return new File(param.absolutePath)
+ }
+
+ def formattedJson = new JsonBuilder(countriesJson).toPrettyString()
+ new File(sourceFile).write(StringEscapeUtils.unescapeJavaScript(formattedJson)) 
